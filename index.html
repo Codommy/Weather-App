@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Weather App</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+   <div class="card">
+    <div class="search">
+    <input type="text" placeholder="City Name"
+    spellcheck= "false">
+    <button><img src="magnify.png" alt="searchicon"></button>
+    </div>
+    <div class="time-box">
+      <img src="clock.png" class="time-img">
+      <p class="time">12:00 PM</p>
+    </div>
+    <div class="error">
+      <p>Invalid City Name</p>
+    </div>
+   <div class="weather">
+    <img src= "cloudy.png" class="weather-icon">
+    <h1 class="temp">37°F</h1>
+    <h2 class="city">Baltimore</h2>
+    <div class="details">
+     <div class="col">
+      <img src="humidity.png">
+      <div>
+        <p class="humidity">59%</p>
+        <p>Humidity</p>
+      </div>
+    </div>
+        <div class="col">
+          <img src="wind.png">
+          <div>
+            <p class="wind">7 mph</p>
+            <p>Wind Speed</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+  const apiKey = "b42ca4d0b74cf4e9c6fe6d9aaf546f42";
+const apiUrl = "https://api.openweathermap.org/data/2.5/weather?units=imperial&q=";
+
+const searchBox = document.querySelector(".search input");
+const searchBtn = document.querySelector(".search button");
+const weatherIcon = document.querySelector(".weather-icon");
+const timeBox = document.querySelector(".time-box");
+const timeText = document.querySelector(".time");
+const timeImg = document.querySelector(".time-img");
+
+let timeInterval;
+
+function getLocalTime(timezone) {
+    const now = new Date();
+    const utcTime = now.getTime() + now.getTimezoneOffset() * 60000;
+    return new Date(utcTime + timezone * 1000);
+}
+
+async function checkWeather(city) {
+    try {
+        const response = await fetch(apiUrl + city + `&appid=${apiKey}`);
+
+        if (!response.ok) {
+            throw new Error("City not found");
+        }
+
+        const data = await response.json();
+        console.log(data);
+
+        document.querySelector(".city").innerText = data.name;
+        document.querySelector(".temp").innerText = Math.round(data.main.temp) + "°F";
+        document.querySelector(".humidity").innerText = data.main.humidity + "%";
+        document.querySelector(".wind").innerText = data.wind.speed + " mph";
+
+        const localTime = getLocalTime(data.timezone);
+        const isNight = localTime.getHours() >= 18 || localTime.getHours() < 6;
+
+        updateTimeAndWeather(data, isNight);
+        if (timeInterval) {
+            clearInterval(timeInterval);
+        }
+        timeInterval = setInterval(() => updateTimeAndWeather(data, isNight), 1000); 
+
+        document.querySelector(".weather").style.display = "block";
+        document.querySelector(".error").style.display = "none";
+        timeBox.style.display = "flex";
+    } catch (error) {
+        console.error("Error fetching weather data:", error);
+        document.querySelector(".error").style.display = "block";
+        document.querySelector(".weather").style.display = "none";
+        timeBox.style.display = "none";
+    }
+}
+
+function updateTimeAndWeather(data, isNight) {
+    const localTime = getLocalTime(data.timezone);
+    let hours = localTime.getHours();
+    let minutes = localTime.getMinutes();
+    let ampm = hours >= 12 ? "PM" : "AM";
+
+    hours = hours % 12 || 12;
+    minutes = minutes < 10 ? "0" + minutes : minutes;
+
+    timeText.innerText = `${hours}:${minutes} ${ampm}`;
+
+    const weatherCondition = data.weather[0].main;
+    const iconMap = {
+        "Clouds": isNight ? "night.png" : "cloudy.png",
+        "Clear": isNight ? "moon.png" : "sun.png",
+        "Rain": "rainnosun.png",
+        "Drizzle": "rainnosun.png",
+        "Snow": "snow.png",
+        "Thunderstorm": "storm.png"
+    };
+
+    weatherIcon.src = iconMap[weatherCondition] || (isNight ? "moon.png" : "sun.png");
+
+    document.body.style.backgroundColor = isNight ? "#191970" : "skyblue"; 
+}
+
+searchBtn.addEventListener("click", () => {
+    if (searchBox.value.trim() !== "") {
+        checkWeather(searchBox.value);
+    }
+});
+
+searchBox.addEventListener("keypress", (event) => {
+    if (event.key === "Enter" && searchBox.value.trim() !== "") {
+        checkWeather(searchBox.value);
+    }
+});
+  </script>
+   </div>
+  </body>
+</html>
